@@ -15396,8 +15396,10 @@
     ]
   },
   "492774295": {
-    "BestGuess": null,
-    "Matches": []
+    "BestGuess": "dbitems::PerkCraftingModule",
+    "Matches": [
+      "dbitems::PerkCraftingModule"
+    ]
   },
   "158763275": {
     "BestGuess": "perk_crafting",
@@ -15436,8 +15438,10 @@
     ]
   },
   "283968065": {
-    "BestGuess": null,
-    "Matches": []
+    "BestGuess": "dbitems::PerkCraftingModifiers",
+    "Matches": [
+      "dbitems::PerkCraftingModifiers"
+    ]
   },
   "3974607293": {
     "BestGuess": "crafting_modifier_type",
