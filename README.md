@@ -16,7 +16,7 @@ Usage: brutus *[ command ] < params >*
 In the root directory of the repo we have provided a brutus result file (brutus.json)\
 This result was generated from the database of 208 different builds and should cover most of the names in any sdb.
 
-**While the generated results can be very helpful, they need to be taken with a grain of salt due to the nature of the hash\
+**While the generated results can be very helpful, they need to be taken with a grain of salt due to the nature of the hash
 used to obfuscate them in the first place. Some of these hashes have multiple matches or might be completely wrong.**
 
 *This project was created for educational purposes only and should not be used by anyone.*
