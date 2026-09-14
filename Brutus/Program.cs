@@ -1,105 +1,118 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
 using Brutus.Shared;
 using FauFau.Formats;
-using FauFau.Util;
 using Checksum = Brutus.Shared.Checksum;
 
 namespace Brutus
 {
     class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
-            
-            RootCommand cmd = new RootCommand
+            RootCommand cmd = new RootCommand("StaticDB field and table name bruteforcer!");
+
+            Option<FileInfo> generateInput = new Option<FileInfo>("--input", "-i")
             {
-                Name = "Brutus",
-                Description = "StaticDB field and table name bruteforcer!",
+                Description = "StaticDB file or directory of dbs to generate result from",
+                Required = true
             };
-            
+            Option<FileInfo> generateOutput = new Option<FileInfo>("--output", "-o")
+            {
+                Description = "File to output result to",
+                DefaultValueFactory = _ => new FileInfo("brutus.json")
+            };
+
             Command generate = new Command("generate", "Generates a brutus result file from StaticDBs")
             {
-                new Option<FileInfo>(new []{"--input", "-i"}, "StaticDB file or directory of dbs to generate result from")
-                {
-                    IsRequired = true
-                },
-                new Option<FileInfo>(new []{"--output", "-o"}, ()=>new FileInfo("brutus.json"), "File to output result to")
-                {
-                    
-                }
+                generateInput,
+                generateOutput
             };
-            
-            
+
             generate.TreatUnmatchedTokensAsErrors = true;
-            generate.Handler = CommandHandler.Create<FileInfo, FileInfo>(Generate);
-            
-            
+            generate.SetAction(result => Generate(result.GetRequiredValue(generateInput), result.GetRequiredValue(generateOutput)));
+
+
+            Option<AttackType> attackType = new Option<AttackType>("--type", "-a")
+            {
+                Description = "Attack type",
+                Required = true
+            };
+            Option<FileInfo> attackTarget = new Option<FileInfo>("--target", "-t")
+            {
+                Description = "File to target",
+                Required = true
+            };
+            Option<FileInfo> attackResult = new Option<FileInfo>("--result", "-r")
+            {
+                Description = "File to output result to",
+                DefaultValueFactory = _ => new FileInfo("brutus.json")
+            };
+
             Command attack = new Command("attack", "Perform an attack and fill the result file with matches")
             {
-                new Option<AttackType>(new []{"--type", "-a"}, "Attack type")
-                {
-                    IsRequired = true
-                },
-                new Option<FileInfo>(new []{"--target", "-t"}, "File to target")
-                {
-                    IsRequired = true
-                },
-                new Option<FileInfo>(new []{"--result", "-r"}, ()=>new FileInfo("brutus.json"), "File to output result to")
-                {
-                        
-                }
+                attackType,
+                attackTarget,
+                attackResult
             };
 
-            attack.Handler = CommandHandler.Create<AttackType, FileInfo, FileInfo>(Attack);
             attack.TreatUnmatchedTokensAsErrors = true;
+            attack.SetAction(result => Attack(result.GetRequiredValue(attackType), result.GetRequiredValue(attackTarget), result.GetRequiredValue(attackResult)));
 
-            
+
+            Option<FileInfo> exportInput = new Option<FileInfo>("--input", "-i")
+            {
+                Description = "Input results json file",
+                DefaultValueFactory = _ => new FileInfo("brutus.json")
+            };
+            Option<FileInfo> exportOutput = new Option<FileInfo>("--output", "-o")
+            {
+                Description = "File to write the dictionary to",
+                DefaultValueFactory = _ => new FileInfo("fields.txt")
+            };
+
             Command export = new Command("export", "Export the best guesses from a brutus result json as a flat dictionary file. (Legacy SDBrowser fields file)")
             {
-                new Option<FileInfo>(new []{"--input", "-i"}, ()=>new FileInfo("brutus.json"), "Input results json file")
-                {
-                        
-                },
-                new Option<FileInfo>(new []{"--output", "-o"}, ()=>new FileInfo("fields.txt"),"File to write the dictionary to")
-                {
-                    
-                }
+                exportInput,
+                exportOutput
             };
-            
-            export.Handler = CommandHandler.Create<FileInfo, FileInfo>(Export);
+
             export.TreatUnmatchedTokensAsErrors = true;
-            
+            export.SetAction(result => Export(result.GetRequiredValue(exportInput), result.GetRequiredValue(exportOutput)));
+
+
+            Option<string> testHash = new Option<string>("--hash", "-h")
+            {
+                Description = "Hash you want to test: 0xAABBCCDD",
+                Required = true
+            };
+            Option<string[]> testStrings = new Option<string[]>("--strings", "-s")
+            {
+                Description = "Strings to hash",
+                Required = true,
+                AllowMultipleArgumentsPerToken = true
+            };
+
             Command test = new Command("test", "Test a hash against strings")
             {
-                new Option<string>(new[] {"--hash", "-h"}, "Hash you want to test: 0xAABBCCDD")
-                {
-                    IsRequired = true
-                },
-                new Option<string[]>(new[] {"--strings", "-s"}, "Strings to hash")
-                {
-                    Argument = new Argument<string[]>(),
-                    IsRequired = true
-                }
+                testHash,
+                testStrings
             };
-                
-            test.TreatUnmatchedTokensAsErrors = true;
-            test.Handler = CommandHandler.Create<string, string[]>(Test);
 
-            cmd.AddCommand(generate);
-            cmd.AddCommand(attack);
-            cmd.AddCommand(export);
-            cmd.AddCommand(test);
-            
-            cmd.InvokeAsync(args).Wait();
+            test.TreatUnmatchedTokensAsErrors = true;
+            test.SetAction(result => Test(result.GetRequiredValue(testHash), result.GetRequiredValue(testStrings)));
+
+            cmd.Add(generate);
+            cmd.Add(attack);
+            cmd.Add(export);
+            cmd.Add(test);
+
+            return cmd.Parse(args).Invoke();
         }
 
         static void Generate(FileInfo input, FileInfo output)
@@ -287,7 +300,7 @@ namespace Brutus
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
             
-            if(matches > 0)
+            if (matches > 0)
             {
                 Console.WriteLine($"Got {matches} new matches, updating result file! :D");
                 brutusResult.Save(result.FullName);
@@ -499,7 +512,7 @@ namespace Brutus
         }
         static void Test(string hash, string[] strings)
         {
-            if(hash.StartsWith("0x", StringComparison.CurrentCultureIgnoreCase))
+            if (hash.StartsWith("0x", StringComparison.CurrentCultureIgnoreCase))
             {
                 uint fnv;
                 bool match = false;
