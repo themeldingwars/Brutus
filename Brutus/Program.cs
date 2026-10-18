@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using Brutus.Shared;
 using FauFau.Formats;
-using Checksum = Brutus.Shared.Checksum;
+using FauFau.Util;
 
 namespace Brutus
 {
